@@ -124,4 +124,48 @@ public class SftpService {
 
         return userInfo;
     }
+
+
+    @RequestMapping(
+            method = RequestMethod.POST,
+            value = "/delete",
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    public String deleteFile(@RequestBody AuthBundledCommand command) {
+        JSch jSch = new JSch();
+        try {
+            Session session = jSch.getSession(command.getUsername(), command.getEndpointAddress());
+            session.setPassword(command.getPassword());
+            session.setConfig("StrictHostKeyChecking", "no");
+
+            session.connect();
+
+            ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+            sftpChannel.connect();
+//            System.out.printf(command.getSubCommand());
+            sftpChannel.rm(command.getSubCommand());
+
+
+
+            sftpChannel.disconnect();
+            session.disconnect();
+
+            return "Deleted";
+
+        } catch (JSchException e) {
+            e.printStackTrace();
+        } catch (SftpException e) {
+            switch (e.id) {
+                case 3:
+                    return "Permission Denied";
+                case 4:
+                    return "File not found";
+                default:
+                    return "File Error";
+
+            }
+        }
+
+        return "error";
+    }
 }
